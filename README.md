@@ -8,7 +8,7 @@
 如果你没有运行MCDR，则无需此插件，下面有一个变相解决的办法（不是很方便，但理论上可行）：
 
 1. 新建一个空的zip压缩包，假设为plugin.zip
-2. 创建一个requirements.txt并写上你要安装的依赖
+2. 创建一个requirements.txt并写上你要安装的依赖，和插件命令不同，此方法可支持一次安装多个包
 3. 把这个txt文件塞进压缩包里面
 4. 修改压缩包的文件名后缀为mcdr，如plugin.mcdr
 5. 打开这个压缩包所在的目录，运行`mcdreforged pim pipi plugin.mcdr`
