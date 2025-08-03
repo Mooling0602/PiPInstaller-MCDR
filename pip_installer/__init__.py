@@ -9,7 +9,7 @@ builder = SimpleCommandBuilder()
 def on_load(server: PluginServerInterface, prev_module):
     builder.arg('package', GreedyText)
     builder.register(server)
-    server.logger.info("PyPI安装器已加载完成！")
+    server.logger.info("PyPI安装器已加载！")
 
 
 @builder.command('!!pip install <package>')
