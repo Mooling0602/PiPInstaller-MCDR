@@ -4,7 +4,7 @@
 	"name": "PiPInstaller",
 	"description": {
 		"en_us": "Install Python dependencies in MCDR console.",
-		"zh_cn": "在MCDR控制台中安装Python依赖！"
+		"zh_cn": "在MCDR控制台中安装Python包依赖！"
 	},
 	"dependencies": {
 		"mcdreforged": ">=2.1.0"
