@@ -10,6 +10,7 @@ from mcdreforged.api.all import (
     GreedyText,
     RText,
     RColor,
+    new_thread,
 )
 
 builder = SimpleCommandBuilder()
@@ -23,6 +24,7 @@ def on_load(server: PluginServerInterface, prev_module: Any):
 
 @builder.command("!!pip install <package>")
 @builder.command("!!pipi <package>")
+@new_thread("PiPInstaller:Main")
 def on_install_pypi(src: CommandSource, ctx: CommandContext):
     if src.is_console:
         packages: list[str] = ctx["package"].split()
