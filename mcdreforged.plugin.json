@@ -1,6 +1,6 @@
 {
 	"id": "pip_installer",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"name": "PiPInstaller",
 	"description": {
 		"en_us": "Install Python dependencies in MCDR console.",
