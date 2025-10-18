@@ -1,8 +1,11 @@
+import json
+import os
 import subprocess
 import sys
 from typing import Any, Optional
 
 from mcdreforged.api.all import (
+    RTextList,
     SimpleCommandBuilder,
     PluginServerInterface,
     CommandSource,
@@ -15,14 +18,69 @@ from mcdreforged.api.all import (
 
 builder = SimpleCommandBuilder()
 
+aliases_for_command = {"!!pipc": "!!pip cancel", "!!pips": "!!pip status"}
+
 # 全局变量存储当前安装进程
 current_process: Optional[subprocess.Popen] = None
 
 
 def on_load(server: PluginServerInterface, prev_module: Any):
+    set_aliases: bool = True
     builder.arg("package", GreedyText)
     builder.register(server)
     server.logger.info("PyPI安装器已加载！")
+    command_aliases_config = os.path.join(
+        "config", "command_aliases", "config.json"
+    )
+    if os.path.exists(command_aliases_config):
+        with open(command_aliases_config, "r") as f:
+            try:
+                existing_data = json.load(f)
+            except Exception:
+                existing_data = {}
+                set_aliases = False
+        for k, v in existing_data.items():
+            for k_, v_ in aliases_for_command.items():
+                if k_ == k:
+                    set_aliases = False
+        if set_aliases:
+            server.logger.info(
+                "检测到Command Aliases配置存在，正在自动添加命令别名……"
+            )
+            existing_data.update(aliases_for_command)
+            with open(command_aliases_config, "w") as f:
+                json.dump(existing_data, f, indent=4)
+            server.logger.info("成功添加命令别名！使用 !!pip usage 查看用法。")
+
+
+@builder.command("!!pipi")
+@builder.command("!!pipi help")
+@builder.command("!!pipi usage")
+def on_command_main(src: CommandSource, ctx: CommandContext):
+    info = RTextList(
+        RText("注意：此插件需要在控制台使用。\n", RColor.aqua),
+        RText("§e!!pipi§r - 查看此帮助页面\n"),
+        RText("§e!!pipi help§r - 查看此帮助页面\n"),
+        RText("§e!!pipi <package>§r - 安装Python（PyPI）包\n"),
+        RText("§e!!pip usage§r - 查看§e!!pip§r命令的用法\n"),
+    )
+    src.reply(info)
+
+
+@builder.command("!!pip usage")
+@builder.command("!!pip")
+def on_command_usage_pip(src: CommandSource, ctx: CommandContext):
+    info = RTextList(
+        RText("注意：此插件需要在控制台使用。\n", RColor.aqua),
+        RText("§e!!pip§r - 查看此帮助页面\n"),
+        RText("§e!!pip usage§r - 查看此帮助页面\n"),
+        RText("§e!!pip install <package>§r - 安装Python（PyPI）包\n"),
+        RText("§e!!pip cancel§r - 取消当前正在运行的安装进程\n"),
+        RText("* 若支持命令别名，可以使用!!pipc\n", RColor.gray),
+        RText("§e!!pip status§r - 查看当前正在运行的安装进程状态\n"),
+        RText("* 若支持命令别名，可以使用!!pips", RColor.gray),
+    )
+    src.reply(info)
 
 
 @builder.command("!!pip install <package>")
@@ -147,4 +205,8 @@ def on_install_status(src: CommandSource, ctx: CommandContext):
         if return_code == 0:
             src.reply(RText("最近的安装进程已成功完成", RColor.green))
         else:
-            src.reply(RText(f"最近的安装进程失败 (退出码: {return_code})", RColor.red))
+            src.reply(
+                RText(
+                    f"最近的安装进程失败 (退出码: {return_code})", RColor.red
+                )
+            )

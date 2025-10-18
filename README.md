@@ -17,16 +17,23 @@
 
 ### 安装过程控制
 
+> 于0.2.1添加
+
+安装插件Command Aliases后，可以通过`!!pipi enable_aliases`启用命令别名。
+> 使用`!!MCDR plg install command_aliases --confirm`来安装此可选依赖。
+
+命令别名将被注册到`config/command_aliases/config.json`中。
+
 > 于v0.2.0添加
 
 `!!pip install <package> [-q]` - 安装Python（PyPI）包，支持空格分割多个包名，支持用`-q`参数静默安装。
 > 也可以使用`!!pipi <package> [-q]`
 
 `!!pip cancel` - 取消当前进行中的安装任务
-> 也可以使用`!!pip cancel`
+> 在启用命令别名后，也可以使用`!!pipc`
 
 `!!pip status` - 查看当前进行中的安装任务状态
-> 也可以使用`!!pip status`
+> 在启用命令别名后，也可以使用`!!pips`
 
 ## 声明
 
