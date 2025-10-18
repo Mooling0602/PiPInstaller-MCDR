@@ -151,7 +151,6 @@ def on_install_pypi(src: CommandSource, ctx: CommandContext):
 
 
 @builder.command("!!pip cancel")
-@builder.command("!!pipc")
 def on_cancel_install(src: CommandSource, ctx: CommandContext):
     """取消当前正在进行的安装"""
     global current_process
@@ -185,7 +184,6 @@ def on_cancel_install(src: CommandSource, ctx: CommandContext):
 
 
 @builder.command("!!pip status")
-@builder.command("!!pips")
 def on_install_status(src: CommandSource, ctx: CommandContext):
     """查看当前安装状态"""
     global current_process
