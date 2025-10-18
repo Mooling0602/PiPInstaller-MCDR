@@ -1,0 +1,9 @@
+[project]
+name = "pipinstaller-mcdr"
+version = "0.2.0"
+description = "Install Python dependencies in MCDR console."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "mcdreforged>=2.1.0",
+]
