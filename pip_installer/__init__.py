@@ -17,9 +17,7 @@ from mcdreforged.api.all import (
 )
 
 builder = SimpleCommandBuilder()
-
 aliases_for_command = {"!!pipc": "!!pip cancel", "!!pips": "!!pip status"}
-
 # 全局变量存储当前安装进程
 current_process: Optional[subprocess.Popen] = None
 
@@ -39,7 +37,21 @@ def on_load(server: PluginServerInterface, prev_module: Any):
             except Exception:
                 existing_data = {}
                 set_aliases = False
+        # remove wrong place aliases.
+        keys_to_remove = []
         for k, v in existing_data.items():
+            for k_, v_ in aliases_for_command.items():
+                if k_ == k:
+                    server.logger.warning(
+                        "正在准备删除上版本（v0.2.1）加错位置的命令别名数据，如果未生效则需要重启MCDR！"
+                    )
+                    keys_to_remove.append(k)
+        for key in keys_to_remove:
+            existing_data.pop(key)
+        # add aliases to right place.
+        if "alias" not in existing_data:
+            existing_data["alias"] = {}
+        for k, v in existing_data["alias"].items():
             for k_, v_ in aliases_for_command.items():
                 if k_ == k:
                     set_aliases = False
@@ -47,7 +59,7 @@ def on_load(server: PluginServerInterface, prev_module: Any):
             server.logger.info(
                 "检测到Command Aliases配置存在，正在自动添加命令别名……"
             )
-            existing_data.update(aliases_for_command)
+            existing_data["alias"].update(aliases_for_command)
             with open(command_aliases_config, "w") as f:
                 json.dump(existing_data, f, indent=4)
             server.logger.info("成功添加命令别名！使用 !!pip usage 查看用法。")
