@@ -1,6 +1,10 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "pipinstaller-mcdr"
-version = "0.2.1"
+dynamic = ["version"]
 description = "Install Python dependencies in MCDR console."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -10,3 +14,11 @@ dependencies = [
 
 [tool.ruff]
 line-length = 79
+
+[tool.hatch.version]
+source = "regex"
+path = "src/mcdreforged.plugin.json"
+pattern = "\"version\"\\s*:\\s*\"(?P<version>[^\"]+)\""
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pip_installer"]
