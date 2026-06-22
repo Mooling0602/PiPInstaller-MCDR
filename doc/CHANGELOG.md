@@ -3,7 +3,7 @@ Changelog contents for parsing in CI.
 
 ## 0.2.3
 该版本没有任何实际更新，仅对代码结构进行了重构。
-> 此构建用于测试CI（自动发版）是否正常工作。
+> 此构建用于测试CI（自动发版）是否正常工作，可以选择不更新。
 
 **#full_changelog**
 
