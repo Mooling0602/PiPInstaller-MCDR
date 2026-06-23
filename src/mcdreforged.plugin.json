@@ -1,6 +1,6 @@
 {
 	"id": "pip_installer",
-	"version": "0.2.3",
+	"version": "0.3.0rc1",
 	"name": "PiPInstaller",
 	"description": {
 		"en_us": "Install Python dependencies in MCDR console.",
@@ -10,5 +10,5 @@
 		"mcdreforged": ">=2.1.0"
 	},
 	"author": "Mooling0602",
-    "link": "https://github.com/Mooling0602/PiPInstaller-MCDR"
+	"link": "https://github.com/Mooling0602/PiPInstaller-MCDR"
 }
