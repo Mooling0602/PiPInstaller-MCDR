@@ -16,4 +16,4 @@ Changelog contents for parsing in CI.
 - 增加插件依赖识别补全功能
 - 添加`!!plg_install <file_url>`命令用以快速安装远程插件文件
 
-**#full_changelog**
+**Full changelog**: https://github.com/Mooling0602/PiPInstaller-MCDR/compare/0.2.3...0.3.0-rc1
