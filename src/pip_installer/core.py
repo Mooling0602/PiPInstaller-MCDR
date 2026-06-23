@@ -219,6 +219,11 @@ def _download_file(
         response = requests.get(url, headers=headers, stream=True, timeout=30)
         response.raise_for_status()
 
+        # Verify server accepted range request; redownload if not supported
+        if resume_pos > 0 and response.status_code != 206:
+            resume_pos = 0
+            save_path.unlink(missing_ok=True)
+
         total = resume_pos + int(response.headers.get("content-length", 0))
         downloaded = resume_pos
 
