@@ -7,7 +7,7 @@ Changelog contents for parsing in CI.
 
 **#full_changelog**
 
-## 0.3.0rc1
+## 0.3.0-rc1
 
 > 预览测试版本，不会同步至插件仓库。
 

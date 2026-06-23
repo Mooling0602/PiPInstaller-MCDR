@@ -1,14 +1,14 @@
 {
-	"id": "pip_installer",
-	"version": "0.3.0rc1",
-	"name": "PiPInstaller",
-	"description": {
-		"en_us": "Install Python dependencies in MCDR console.",
-		"zh_cn": "在MCDR控制台中安装Python包依赖！"
-	},
-	"dependencies": {
-		"mcdreforged": ">=2.1.0"
-	},
-	"author": "Mooling0602",
-	"link": "https://github.com/Mooling0602/PiPInstaller-MCDR"
+  "id": "pip_installer",
+  "version": "0.3.0-rc1",
+  "name": "PiPInstaller",
+  "description": {
+    "en_us": "Install Python dependencies in MCDR console.",
+    "zh_cn": "在MCDR控制台中安装Python包依赖！"
+  },
+  "dependencies": {
+    "mcdreforged": ">=2.1.0"
+  },
+  "author": "Mooling0602",
+  "link": "https://github.com/Mooling0602/PiPInstaller-MCDR"
 }
