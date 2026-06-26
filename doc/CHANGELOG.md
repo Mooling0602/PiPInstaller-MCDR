@@ -18,10 +18,11 @@ Changelog contents for parsing in CI.
 
 **Full changelog**: https://github.com/Mooling0602/PiPInstaller-MCDR/compare/0.2.3...0.3.0-rc1
 
-## 0.3.0
+## 0.3.0-rc2
 
-- 新增插件依赖自动识别补全功能
-- 新增第三方插件安装功能（下载、依赖安装），需手动加载
-- 更新插件使用协议
+> 预览测试版本，不会同步至插件仓库。
+
+- 改用`pip`工具直接解析txt格式的Python(PyPI)包依赖列表
+- 增强了插件包校验的健壮性
 
 **#full_changelog**

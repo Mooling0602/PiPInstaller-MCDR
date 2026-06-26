@@ -136,8 +136,8 @@ def on_install_pypi(src: CommandSource, ctx: CommandContext):
 
 @builder.command("!!pip install -r <file>")
 @builder.command("!!pipi -r <file>")
+@new_thread("PiPInstaller:InstallRequired")
 def on_install_required(src: CommandSource, ctx: CommandContext):
-    server = src.get_server().psi()
     file_path = Path(ctx["file"])
     if not _console_only(src) or _install_busy(src):
         return
@@ -149,42 +149,52 @@ def on_install_required(src: CommandSource, ctx: CommandContext):
             src.reply(RText("plugins 目录不存在！", RColor.yellow))
             return
 
-        packages: list[str] = []
+        cache_dir = Path(".cache") / "requirements"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        requirement_args: list[str] = []
         for plugin_path in plugins_dir.iterdir():
             if not plugin_path.is_file():
                 continue
             file_suffix = plugin_path.suffix.removeprefix(".")
             if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
                 continue
-            plugin_packages = core.parse_requirements_from_archive(
-                str(plugin_path)
+            requirements_path = core.extract_requirements_from_archive(
+                str(plugin_path), cache_dir
             )
-            if plugin_packages is not None:
-                packages.extend(plugin_packages)
+            if requirements_path is not None:
+                requirement_args.extend(["-r", str(requirements_path)])
 
-        packages = list(dict.fromkeys(packages))
-        if not packages:
+        if not requirement_args:
             src.reply(
                 RText("plugins 目录中没有可安装的插件依赖！", RColor.yellow)
             )
             return
 
-        server.execute_command(f"!!pip install {' '.join(packages)}")
+        core.run_pip_install(src, requirement_args, False)
         return
 
-    if file_path.name != "requirements.txt":
-        file_suffix = file_path.suffix.removeprefix(".")
-        if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
-            src.reply(
-                RText(
-                    "插件包格式无效，请使用 mcdr, pyz 或 zip 格式！",
-                    RColor.red,
-                )
-            )
+    file_suffix = file_path.suffix.removeprefix(".")
+    if file_suffix == "txt":
+        if not file_path.exists():
+            src.reply(RText(f"依赖文件不存在: {file_path}", RColor.red))
             return
+        core.run_pip_install(src, ["-r", str(file_path)], False)
+        return
 
-    packages = core.parse_requirements_from_archive(str(file_path))
-    if packages is None:
+    if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
+        src.reply(
+            RText(
+                "文件格式无效，请使用 txt, mcdr, pyz 或 zip 格式！",
+                RColor.red,
+            )
+        )
+        return
+    cache_dir = Path(".cache") / "requirements"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    requirements_path = core.extract_requirements_from_archive(
+        str(file_path), cache_dir
+    )
+    if requirements_path is None:
         src.reply(
             RText(
                 "插件包中没有 requirements.txt 文件或文件为空！",
@@ -193,7 +203,7 @@ def on_install_required(src: CommandSource, ctx: CommandContext):
         )
         return
 
-    server.execute_command(f"!!pip install {' '.join(packages)}")
+    core.run_pip_install(src, ["-r", str(requirements_path)], False)
 
 
 # ===================== Plugin Install =====================

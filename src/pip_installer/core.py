@@ -1,3 +1,4 @@
+import hashlib
 import shutil
 import subprocess
 import sys
@@ -17,6 +18,10 @@ VALID_PLUGIN_PACKAGE_FORMATS = ["mcdr", "pyz", "zip"]
 
 
 # ===================== Helpers =====================
+
+
+def is_valid_plugin_package(file_path: Path) -> bool:
+    return file_path.suffix.removeprefix(".") in VALID_PLUGIN_PACKAGE_FORMATS
 
 
 def human_size(size_bytes: float) -> str:
@@ -79,21 +84,29 @@ def run_pip_install(
         rt.current_process = None
 
 
-def parse_requirements_from_archive(file_path: str) -> Optional[list[str]]:
-    """Read requirements.txt from a plugin archive, return package list."""
+def decode_text(data: bytes) -> str:
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode("gbk")
+
+
+def extract_requirements_from_archive(
+    file_path: str, target_dir: Path
+) -> Optional[Path]:
     requirements_file = "requirements.txt"
     try:
         with ZipFile(file_path, "r") as zip_ref:
             if requirements_file not in zip_ref.namelist():
                 return None
             with zip_ref.open(requirements_file) as f:
-                content = f.read().decode("utf-8")
-            packages = []
-            for line in content.splitlines():
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    packages.append(line)
-            return packages if packages else None
+                content = decode_text(f.read())
+        archive_hash = hashlib.sha256(
+            str(Path(file_path).resolve()).encode()
+        ).hexdigest()
+        requirements_path = target_dir / f"{archive_hash}.requirements.txt"
+        requirements_path.write_text(content, encoding="utf-8")
+        return requirements_path
     except Exception:
         return None
 
@@ -108,6 +121,11 @@ def place_local_plugin(
     file_path = file_path.resolve()
     if not file_path.exists():
         src.reply(RText(f"文件不存在: {file_path}", RColor.red))
+        return None
+    if not is_valid_plugin_package(file_path):
+        src.reply(
+            RText("插件包格式无效，请使用 mcdr, pyz 或 zip 格式！", RColor.red)
+        )
         return None
 
     plugins_abs = plugins_dir.resolve()
@@ -130,6 +148,16 @@ def place_remote_plugin(
     custom_name: Optional[str],
 ) -> Optional[Path]:
     """Download from url → cache, move to plugins, return final path."""
+    parsed_url = urllib.parse.urlparse(url)
+    filename = custom_name or PurePosixPath(parsed_url.path).name
+    if not filename:
+        filename = "downloaded_plugin.mcdr"
+    if not is_valid_plugin_package(Path(filename)):
+        src.reply(
+            RText("插件包格式无效，请使用 mcdr, pyz 或 zip 格式！", RColor.red)
+        )
+        return None
+
     src.reply(RText(f"开始下载插件: {url}", RColor.aqua))
 
     rt.current_download = DownloadState(url)
@@ -166,7 +194,7 @@ def place_remote_plugin(
         reported = True
 
     file_path = _download_file(
-        url, cache_dir, custom_name, on_progress=_on_progress
+        url, cache_dir, filename, on_progress=_on_progress
     )
 
     if file_path is None:
@@ -196,16 +224,11 @@ def _in_plugins(file_path: Path, plugins_dir: Path) -> bool:
 def _download_file(
     url: str,
     save_dir: Path,
-    custom_name: Optional[str] = None,
+    filename: str,
     on_progress: Optional[Callable[[], None]] = None,
 ) -> Optional[Path]:
     """Pure download with resume support. Checks rt.current_download.cancelled."""
     try:
-        parsed_url = urllib.parse.urlparse(url)
-        filename = custom_name or PurePosixPath(parsed_url.path).name
-        if not filename:
-            filename = "downloaded_plugin.mcdr"
-
         save_path = save_dir / filename
         resume_pos = save_path.stat().st_size if save_path.exists() else 0
 

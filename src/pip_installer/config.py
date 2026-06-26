@@ -4,6 +4,8 @@ from pathlib import Path
 
 from mcdreforged.api.all import PluginServerInterface
 
+from pip_installer.core import decode_text
+
 aliases_for_command = {
     "!!pipc": "!!pip cancel",
     "!!pips": "!!pip status",
@@ -31,15 +33,13 @@ def register_command_aliases(server: PluginServerInterface):
         server.logger.info(
             "检测到Command Aliases配置存在，正在尝试自动添加命令别名……"
         )
-        with open(command_aliases_config, "r") as f:
-            try:
-                existing_data: dict = json.load(f)
-            except Exception as e:
-                server.logger.error(
-                    f"读取Command Aliases插件配置时遇到错误: {e}"
-                )
-                server.logger.warning("将跳过命令别名注册操作。")
-                return
+        try:
+            config_content = command_aliases_config.read_bytes()
+            existing_data: dict = json.loads(decode_text(config_content))
+        except Exception as e:
+            server.logger.error(f"读取Command Aliases插件配置时遇到错误: {e}")
+            server.logger.warning("将跳过命令别名注册操作。")
+            return
     else:
         server.logger.info(
             "Command Aliases插件配置文件不存在，无法注册命令别名。"
@@ -50,8 +50,9 @@ def register_command_aliases(server: PluginServerInterface):
     )
     command_aliases_data["alias"].update(aliases_for_command)
     if command_aliases_data != existing_data:
-        with open(command_aliases_config, "w") as f:
-            json.dump(command_aliases_data, f, indent=4)
+        command_aliases_config.write_text(
+            json.dumps(command_aliases_data, indent=4), encoding="utf-8"
+        )
     server.logger.info(
         "成功添加或更新命令别名！使用 !!pip usage 查看详细用法。"
     )
