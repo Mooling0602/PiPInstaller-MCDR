@@ -1,4 +1,3 @@
-import os
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -139,11 +138,11 @@ def on_install_pypi(src: CommandSource, ctx: CommandContext):
 @builder.command("!!pipi -r <file>")
 def on_install_required(src: CommandSource, ctx: CommandContext):
     server = src.get_server().psi()
-    file_path = ctx["file"]
+    file_path = Path(ctx["file"])
     if not _console_only(src) or _install_busy(src):
         return
-    if not os.path.basename(file_path) == "requirements.txt":
-        file_suffix = os.path.splitext(file_path)[1][1:]
+    if file_path.name != "requirements.txt":
+        file_suffix = file_path.suffix.removeprefix(".")
         if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
             src.reply(
                 RText(
@@ -205,6 +204,20 @@ def on_install_plugin(src: CommandSource, ctx: CommandContext):
 
         src.reply(RText(f"开始处理插件依赖: {file_path.name}", RColor.aqua))
         server.execute_command(f"!!pip install -r {str(file_path)}")
+        src.reply(
+            RText(
+                "插件依赖正在后台安装，完成后，请按以下方式手动加载插件。",
+                RColor.green,
+            )
+        )
+        src.reply(
+            RTextList(
+                RText("你可以选用以下命令加载新安装的第三方插件: \n"),
+                RText(f"!!MCDR plg load {file_path.name}\n", RColor.yellow),
+                RText("!!MCDR reload plg", RColor.yellow),
+                RText(" - 重载所有变更插件", RColor.gray),
+            )
+        )
     except Exception as e:
         src.reply(RText(f"插件安装发生错误: {str(e)}", RColor.red))
     finally:

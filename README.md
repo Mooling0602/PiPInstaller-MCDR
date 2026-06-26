@@ -2,7 +2,7 @@
 
 为面板服解决Python依赖安装问题！
 
-> For English users: I'm sorry but please translate by yourself, AI tools would be fine.
+> About I18n: there's no translation plans at present.
 >
 > PRs for translation are welcome.
 
@@ -24,7 +24,13 @@
 ## 声明（插件使用协议）
 
 - 此插件的维护者有权根据开发进展、开源协议、MCDR 功能变化等因素，随时更新此部分内容，**使用此插件即视为你同意这些内容及其更新，因违反插件使用协议而造成的任何后果，此插件的维护者及MCDReforged的开发者不承担任何责任。**。
+
+> 你可以在 Git 提交中查看历史版本。
+
 - **MCDReforged的开发者没有计划提供类似直接补全安装插件缺失的PyPI依赖的功能（内置的插件管理器已处理的足够完善），因此不要向他们发出于此相关的任何功能请求。**
-- **用户通过远程地址安装的未知来源的插件包，需自行确认安全性并自负风险，此插件的维护者和MCDReforged的开发者不对此承担任何责任。**
+
+- **用户通过远程地址安装的未知来源的插件包，需自行确认安全性并自负风险，此插件的维护者和MCDReforged的开发者不对此承担任何责任。第三方插件包下载后，需要按照PiPInstaller的提示使用MCDR的内建命令自行加载，遇到问题请先向该插件的开发者反馈。**
+
 - **若在使用插件的命令时遇到问题，用户可在此仓库发起Issues进行反馈；若在MCDR外使用变相解决的办法，则用户需要自行确认MCDR的命令是否在你的操作环境中可用，并且用户应该知道这种做法是不受推荐的，请不要因为在使用此方法遇到问题时进行任何反馈。**
+
 - **用户应该详细阅读这篇[MCDR 安装文档](https://docs.mcdreforged.com/zh-cn/latest/quick_start/install.html#)，构建完整的Python环境管理体系，这才是解决Python依赖问题的根本所在**

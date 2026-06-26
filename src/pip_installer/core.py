@@ -1,10 +1,9 @@
-import os
 import shutil
 import subprocess
 import sys
 import time
 import urllib.parse
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Callable, Optional
 
 import requests
@@ -183,17 +182,15 @@ def place_remote_plugin(
     if dest.exists():
         src.reply(RText(f"插件已存在，将覆盖: {dest.name}", RColor.yellow))
     shutil.move(str(file_path), str(dest))
-    return dest
+    return dest.resolve()
 
 
 def _in_plugins(file_path: Path, plugins_dir: Path) -> bool:
     try:
-        return (
-            str(file_path).startswith(str(plugins_dir) + os.sep)
-            or file_path == plugins_dir
-        )
-    except Exception:
-        return False
+        file_path.relative_to(plugins_dir)
+        return True
+    except ValueError:
+        return file_path == plugins_dir
 
 
 def _download_file(
@@ -205,7 +202,7 @@ def _download_file(
     """Pure download with resume support. Checks rt.current_download.cancelled."""
     try:
         parsed_url = urllib.parse.urlparse(url)
-        filename = custom_name or os.path.basename(parsed_url.path)
+        filename = custom_name or PurePosixPath(parsed_url.path).name
         if not filename:
             filename = "downloaded_plugin.mcdr"
 

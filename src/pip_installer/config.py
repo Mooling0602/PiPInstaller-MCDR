@@ -1,6 +1,6 @@
 import copy
 import json
-import os
+from pathlib import Path
 
 from mcdreforged.api.all import PluginServerInterface
 
@@ -9,9 +9,7 @@ aliases_for_command = {
     "!!pips": "!!pip status",
     "!!plgi": "!!pipi plugin",
 }
-command_aliases_config = os.path.join(
-    "config", "command_aliases", "config.json"
-)
+command_aliases_config = Path("config") / "command_aliases" / "config.json"
 
 
 def _get_fixed_aliases_data(data: dict) -> dict:
@@ -29,7 +27,7 @@ def _get_fixed_aliases_data(data: dict) -> dict:
 
 
 def register_command_aliases(server: PluginServerInterface):
-    if os.path.exists(command_aliases_config):
+    if command_aliases_config.exists():
         server.logger.info(
             "检测到Command Aliases配置存在，正在尝试自动添加命令别名……"
         )
