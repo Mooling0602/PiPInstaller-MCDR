@@ -141,6 +141,37 @@ def on_install_required(src: CommandSource, ctx: CommandContext):
     file_path = Path(ctx["file"])
     if not _console_only(src) or _install_busy(src):
         return
+
+    if file_path.name == "*":
+        src.reply("正在检测并安装插件目录中所有打包插件的Python(PyPI)包依赖……")
+        plugins_dir = Path("plugins")
+        if not plugins_dir.exists():
+            src.reply(RText("plugins 目录不存在！", RColor.yellow))
+            return
+
+        packages: list[str] = []
+        for plugin_path in plugins_dir.iterdir():
+            if not plugin_path.is_file():
+                continue
+            file_suffix = plugin_path.suffix.removeprefix(".")
+            if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
+                continue
+            plugin_packages = core.parse_requirements_from_archive(
+                str(plugin_path)
+            )
+            if plugin_packages is not None:
+                packages.extend(plugin_packages)
+
+        packages = list(dict.fromkeys(packages))
+        if not packages:
+            src.reply(
+                RText("plugins 目录中没有可安装的插件依赖！", RColor.yellow)
+            )
+            return
+
+        server.execute_command(f"!!pip install {' '.join(packages)}")
+        return
+
     if file_path.name != "requirements.txt":
         file_suffix = file_path.suffix.removeprefix(".")
         if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
@@ -152,7 +183,7 @@ def on_install_required(src: CommandSource, ctx: CommandContext):
             )
             return
 
-    packages = core.parse_requirements_from_archive(file_path)
+    packages = core.parse_requirements_from_archive(str(file_path))
     if packages is None:
         src.reply(
             RText(
