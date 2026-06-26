@@ -206,15 +206,15 @@ def on_install_plugin(src: CommandSource, ctx: CommandContext):
         server.execute_command(f"!!pip install -r {str(file_path)}")
         src.reply(
             RText(
-                "插件依赖正在后台安装，完成后，请按以下方式手动加载插件。",
+                "已开始处理插件依赖；若存在依赖，请等待依赖安装完成后再加载插件。",
                 RColor.green,
             )
         )
         src.reply(
             RTextList(
                 RText("你可以选用以下命令加载新安装的第三方插件: \n"),
-                RText(f"!!MCDR plg load {file_path.name}\n", RColor.yellow),
-                RText("!!MCDR reload plg", RColor.yellow),
+                RText(f"!!MCDR plugin load {file_path.name}\n", RColor.yellow),
+                RText("!!MCDR reload plugin", RColor.yellow),
                 RText(" - 重载所有变更插件", RColor.gray),
             )
         )
