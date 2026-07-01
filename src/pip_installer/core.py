@@ -52,7 +52,7 @@ def format_time(seconds: Optional[float]) -> str:
 
 def run_pip_install(
     src: CommandSource, packages: list[str], quiet_mode: bool
-) -> None:
+) -> bool:
     """Execute pip install, update rt.current_process, reply results."""
     src.reply(RText(f"开始安装包: {', '.join(packages)}", RColor.aqua))
     cmd: list[str] = [sys.executable, "-m", "pip", "install", *packages]
@@ -69,21 +69,34 @@ def run_pip_install(
                 src.reply(RText("PyPI包安装完成！", RColor.green))
                 if stdout:
                     src.reply(f"输出: {stdout}")
+                return True
             else:
                 src.reply(RText("PyPI包安装失败！", RColor.red))
                 if stderr:
                     src.reply(f"错误: {stderr}")
+                return False
         else:
             rt.current_process = subprocess.Popen(cmd)
             rt.current_process.wait()
             if rt.current_process.returncode == 0:
                 src.reply(RText("PyPI包安装完成！", RColor.green))
+                return True
             else:
                 src.reply(RText("PyPI包安装失败！", RColor.red))
+                return False
     except Exception as e:  # noqa: BLE001
         src.reply(RText(f"安装过程中发生错误: {e!s}", RColor.red))
+        return False
     finally:
         rt.current_process = None
+
+
+def install_pypi_packages(src: CommandSource, package_text: str) -> bool:
+    packages: list[str] = package_text.split()
+    quiet_mode = "-q" in packages
+    if quiet_mode:
+        packages.remove("-q")
+    return run_pip_install(src, packages, quiet_mode)
 
 
 def decode_text(data: bytes) -> str:
@@ -108,6 +121,87 @@ def extract_requirements_from_archive(
     requirements_path = target_dir / f"{archive_hash}.requirements.txt"
     requirements_path.write_text(content, encoding="utf-8")
     return requirements_path
+
+
+def install_requirements_from_file(
+    src: CommandSource, file_path: Path
+) -> bool:
+    if file_path.name == "*":
+        src.reply("正在检测并安装插件目录中所有打包插件的Python(PyPI)包依赖……")
+        plugins_dir = Path("plugins")
+        if not plugins_dir.exists():
+            src.reply(RText("plugins 目录不存在！", RColor.yellow))
+            return False
+
+        cache_dir = Path(".cache") / "requirements"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        requirement_args: list[str] = []
+        for plugin_path in plugins_dir.iterdir():
+            if not plugin_path.is_file():
+                continue
+            if not is_valid_plugin_package(plugin_path):
+                continue
+            requirements_path, read_success = _read_requirements_from_archive(
+                src, plugin_path, cache_dir
+            )
+            if not read_success:
+                continue
+            if requirements_path is not None:
+                requirement_args.extend(["-r", str(requirements_path)])
+
+        if not requirement_args:
+            src.reply(
+                RText("plugins 目录中没有可安装的插件依赖！", RColor.yellow)
+            )
+            return True
+
+        return run_pip_install(src, requirement_args, False)
+
+    file_suffix = file_path.suffix.removeprefix(".")
+    if file_suffix == "txt":
+        if not file_path.exists():
+            src.reply(RText(f"依赖文件不存在: {file_path}", RColor.red))
+            return False
+        return run_pip_install(src, ["-r", str(file_path)], False)
+
+    if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
+        src.reply(
+            RText(
+                "文件格式无效，请使用 txt, mcdr, pyz 或 zip 格式！",
+                RColor.red,
+            )
+        )
+        return False
+
+    cache_dir = Path(".cache") / "requirements"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    requirements_path, read_success = _read_requirements_from_archive(
+        src, file_path, cache_dir
+    )
+    if not read_success:
+        return False
+    if requirements_path is None:
+        src.reply(
+            RText(
+                "插件包中没有 requirements.txt 文件或文件为空！",
+                RColor.yellow,
+            )
+        )
+        return True
+
+    return run_pip_install(src, ["-r", str(requirements_path)], False)
+
+
+def _read_requirements_from_archive(
+    src: CommandSource, file_path: Path, cache_dir: Path
+) -> tuple[Optional[Path], bool]:
+    try:
+        return extract_requirements_from_archive(
+            str(file_path), cache_dir
+        ), True
+    except Exception as e:  # noqa: BLE001
+        src.reply(RText(f"读取插件依赖失败: {e!s}", RColor.red))
+        return None, False
 
 
 # ===================== Plugin Placement =====================
@@ -212,6 +306,79 @@ def place_remote_plugin(
     return dest.resolve()
 
 
+def install_plugin(
+    src: CommandSource, file_url: str, custom_name: Optional[str]
+) -> None:
+    """Install a plugin from a remote URL or local path, then handle deps."""
+    plugins_dir = Path("plugins")
+    cache_dir = Path(".cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    plugins_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        if file_url.startswith(("http://", "https://")):
+            file_path = place_remote_plugin(
+                src, file_url, cache_dir, plugins_dir, custom_name
+            )
+        else:
+            file_path = place_local_plugin(src, Path(file_url), plugins_dir)
+        if file_path is None:
+            return
+
+        rt.current_download = None
+        if (
+            rt.current_process is not None
+            and rt.current_process.poll() is None
+        ):
+            src.reply(
+                RText(
+                    "已有安装进程在运行中，已跳过自动处理插件依赖。",
+                    RColor.yellow,
+                )
+            )
+            src.reply(
+                RTextList(
+                    RText("安装进程结束后，可手动执行: "),
+                    RText(f"!!pipi -r {file_path!s}", RColor.yellow),
+                )
+            )
+            _reply_plugin_load_commands(src, file_path)
+            return
+
+        src.reply(RText(f"开始处理插件依赖: {file_path.name}", RColor.aqua))
+        dependencies_ready = install_requirements_from_file(src, file_path)
+        if dependencies_ready:
+            src.reply(
+                RText(
+                    "插件依赖处理已结束；若存在依赖，请确认安装成功后再加载插件。",
+                    RColor.green,
+                )
+            )
+        else:
+            src.reply(
+                RText(
+                    "插件依赖处理失败或未完成；请解决依赖问题后再加载插件。",
+                    RColor.yellow,
+                )
+            )
+        _reply_plugin_load_commands(src, file_path)
+    except Exception as e:  # noqa: BLE001
+        src.reply(RText(f"插件安装发生错误: {e!s}", RColor.red))
+    finally:
+        rt.current_download = None
+
+
+def _reply_plugin_load_commands(src: CommandSource, file_path: Path) -> None:
+    src.reply(
+        RTextList(
+            RText("你可以选用以下命令加载新安装的第三方插件: \n"),
+            RText(f"!!MCDR plugin load {file_path.name}\n", RColor.yellow),
+            RText("!!MCDR reload plugin", RColor.yellow),
+            RText(" - 重载所有变更插件", RColor.gray),
+        )
+    )
+
+
 def _in_plugins(file_path: Path, plugins_dir: Path) -> bool:
     try:
         file_path.relative_to(plugins_dir)
@@ -232,7 +399,7 @@ def _download_file(
 
     headers: dict[str, str] = {}
     if resume_pos > 0:
-            headers["Range"] = f"bytes={resume_pos}-"
+        headers["Range"] = f"bytes={resume_pos}-"
 
     response = requests.get(url, headers=headers, stream=True, timeout=30)
     response.raise_for_status()

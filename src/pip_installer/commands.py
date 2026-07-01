@@ -1,6 +1,5 @@
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from mcdreforged.api.all import (
     CommandContext,
@@ -18,7 +17,6 @@ from mcdreforged.api.all import (
 import pip_installer.runtime as rt
 from pip_installer import core
 
-VALID_PLUGIN_PACKAGE_FORMATS = core.VALID_PLUGIN_PACKAGE_FORMATS
 builder = SimpleCommandBuilder()
 
 
@@ -127,83 +125,16 @@ def _install_busy(src: CommandSource) -> bool:
 def on_install_pypi(src: CommandSource, ctx: CommandContext):
     if not _console_only(src) or _install_busy(src):
         return
-    packages: list[str] = ctx["package"].split()
-    quiet_mode = "-q" in packages
-    if quiet_mode:
-        packages.remove("-q")
-    core.run_pip_install(src, packages, quiet_mode)
+    core.install_pypi_packages(src, ctx["package"])
 
 
 @builder.command("!!pip install -r <file>")
 @builder.command("!!pipi -r <file>")
 @new_thread("PiPInstaller:InstallRequired")
 def on_install_required(src: CommandSource, ctx: CommandContext):
-    file_path = Path(ctx["file"])
     if not _console_only(src) or _install_busy(src):
         return
-
-    if file_path.name == "*":
-        src.reply("正在检测并安装插件目录中所有打包插件的Python(PyPI)包依赖……")
-        plugins_dir = Path("plugins")
-        if not plugins_dir.exists():
-            src.reply(RText("plugins 目录不存在！", RColor.yellow))
-            return
-
-        cache_dir = Path(".cache") / "requirements"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        requirement_args: list[str] = []
-        for plugin_path in plugins_dir.iterdir():
-            if not plugin_path.is_file():
-                continue
-            file_suffix = plugin_path.suffix.removeprefix(".")
-            if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
-                continue
-            requirements_path = core.extract_requirements_from_archive(
-                str(plugin_path), cache_dir
-            )
-            if requirements_path is not None:
-                requirement_args.extend(["-r", str(requirements_path)])
-
-        if not requirement_args:
-            src.reply(
-                RText("plugins 目录中没有可安装的插件依赖！", RColor.yellow)
-            )
-            return
-
-        core.run_pip_install(src, requirement_args, False)
-        return
-
-    file_suffix = file_path.suffix.removeprefix(".")
-    if file_suffix == "txt":
-        if not file_path.exists():
-            src.reply(RText(f"依赖文件不存在: {file_path}", RColor.red))
-            return
-        core.run_pip_install(src, ["-r", str(file_path)], False)
-        return
-
-    if file_suffix not in VALID_PLUGIN_PACKAGE_FORMATS:
-        src.reply(
-            RText(
-                "文件格式无效，请使用 txt, mcdr, pyz 或 zip 格式！",
-                RColor.red,
-            )
-        )
-        return
-    cache_dir = Path(".cache") / "requirements"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    requirements_path = core.extract_requirements_from_archive(
-        str(file_path), cache_dir
-    )
-    if requirements_path is None:
-        src.reply(
-            RText(
-                "插件包中没有 requirements.txt 文件或文件为空！",
-                RColor.yellow,
-            )
-        )
-        return
-
-    core.run_pip_install(src, ["-r", str(requirements_path)], False)
+    core.install_requirements_from_file(src, Path(ctx["file"]))
 
 
 # ===================== Plugin Install =====================
@@ -221,47 +152,7 @@ def on_install_plugin(src: CommandSource, ctx: CommandContext):
         return
     if _install_busy(src):
         return
-
-    file_url = ctx["file_url"]
-    custom_name: Optional[str] = ctx.get("file_name")
-
-    plugins_dir = Path("plugins")
-    cache_dir = Path(".cache")
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    plugins_dir.mkdir(parents=True, exist_ok=True)
-
-    try:
-        if file_url.startswith(("http://", "https://")):
-            file_path = core.place_remote_plugin(
-                src, file_url, cache_dir, plugins_dir, custom_name
-            )
-        else:
-            file_path = core.place_local_plugin(
-                src, Path(file_url), plugins_dir
-            )
-        if file_path is None:
-            return
-
-        src.reply(RText(f"开始处理插件依赖: {file_path.name}", RColor.aqua))
-        rt.psi.execute_command(f"!!pip install -r {file_path!s}")
-        src.reply(
-            RText(
-                "已开始处理插件依赖；若存在依赖，请等待依赖安装完成后再加载插件。",
-                RColor.green,
-            )
-        )
-        src.reply(
-            RTextList(
-                RText("你可以选用以下命令加载新安装的第三方插件: \n"),
-                RText(f"!!MCDR plugin load {file_path.name}\n", RColor.yellow),
-                RText("!!MCDR reload plugin", RColor.yellow),
-                RText(" - 重载所有变更插件", RColor.gray),
-            )
-        )
-    except Exception as e:  # noqa: BLE001
-        src.reply(RText(f"插件安装发生错误: {e!s}", RColor.red))
-    finally:
-        rt.current_download = None
+    core.install_plugin(src, ctx["file_url"], ctx.get("file_name"))
 
 
 # ===================== Process Management =====================
