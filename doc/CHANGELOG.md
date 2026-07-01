@@ -50,6 +50,6 @@ Changelog contents for parsing in CI.
 > 预览测试版本，不会同步至插件仓库。
 
 - 修复取消插件下载后后台下载仍可能继续进行的问题
-- 将 MCDReforged 最低版本要求调整为 2.10.0，以匹配当前命令注册实现
+- 将MCDReforged最低版本要求调整为2.10.0，以匹配当前命令注册实现
 
 **#full_changelog**
