@@ -54,5 +54,7 @@ def register_command_aliases(server: PluginServerInterface):
             json.dumps(command_aliases_data, indent=4), encoding="utf-8"
         )
     server.logger.info(
-        "成功添加或更新命令别名！使用 !!pip usage 查看详细用法。"
+        "成功添加或更新命令别名！使用 !!MCDR plugin reload "
+        "command_aliases 重新注册。"
     )
+    server.logger.info("使用 !!pipi 查看插件的详细用法。")

@@ -1,0 +1,2 @@
+mcdreforged # version limit depends on plugin metadata(mcdreforged.plugin.json)
+requests>=2.32.5
