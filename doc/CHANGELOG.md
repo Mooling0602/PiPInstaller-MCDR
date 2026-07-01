@@ -36,3 +36,11 @@ Changelog contents for parsing in CI.
 > `PluginServerInterface`是MCDReforged提供给插件的核心API实例。
 
 **#full_changelog**
+
+## 0.3.0-rc4
+
+> 预览测试版本，不会同步至插件仓库。
+
+- 将命令模块中的核心逻辑进一步整合至`core.py`模块，避免受命令上下文干扰
+
+**#full_changelog**
