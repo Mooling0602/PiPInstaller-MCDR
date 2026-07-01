@@ -253,33 +253,44 @@ def place_remote_plugin(
 
     src.reply(RText(f"开始下载插件: {url}", RColor.aqua))
 
-    rt.current_download = DownloadState(url)
+    download_state = DownloadState(url)
+    rt.current_download = download_state
     reported = False
 
     def _on_progress() -> None:
         nonlocal reported
         if reported:
             return
-        ds = rt.current_download
-        if ds is None or ds.total_bytes == 0:
+        if download_state.total_bytes == 0:
             return
-        elapsed = time.time() - ds._start_time
+        elapsed = time.time() - download_state._start_time
         if elapsed < 1.0:
             return
-        ds.tick()
+        download_state.tick()
         info = RTextList(
-            RText(f"已下载: {human_size(ds.downloaded_bytes)}", RColor.aqua),
+            RText(
+                f"已下载: {human_size(download_state.downloaded_bytes)}",
+                RColor.aqua,
+            ),
         )
-        pct = ds.downloaded_bytes / ds.total_bytes * 100
+        pct = (
+            download_state.downloaded_bytes / download_state.total_bytes * 100
+        )
         info.append(
             RText(
-                f" / {human_size(ds.total_bytes)} ({pct:.1f}%)",
+                f" / {human_size(download_state.total_bytes)} ({pct:.1f}%)",
                 RColor.gray,
             )
         )
-        info.append(RText(f"\n速度: {human_size(ds.speed)}/s", RColor.aqua))
-        if ds.eta is not None:
-            info.append(RText(f"  剩余: {format_time(ds.eta)}", RColor.gray))
+        info.append(
+            RText(f"\n速度: {human_size(download_state.speed)}/s", RColor.aqua)
+        )
+        if download_state.eta is not None:
+            info.append(
+                RText(
+                    f"  剩余: {format_time(download_state.eta)}", RColor.gray
+                )
+            )
         info.append(
             RText("\n使用 !!pipi plugin status 查看下载进度", RColor.gray)
         )
@@ -287,14 +298,21 @@ def place_remote_plugin(
         reported = True
 
     file_path = _download_file(
-        url, cache_dir, filename, on_progress=_on_progress
+        url,
+        cache_dir,
+        filename,
+        download_state,
+        on_progress=_on_progress,
     )
 
     if file_path is None:
-        if rt.current_download is not None and rt.current_download.cancelled:
+        if download_state.cancelled:
             src.reply(RText("插件下载已取消！", RColor.yellow))
         else:
             src.reply(RText("插件下载失败！", RColor.red))
+        return None
+    if download_state.cancelled:
+        src.reply(RText("插件下载已取消！", RColor.yellow))
         return None
 
     src.reply(RText(f"插件下载完成: {file_path.name}", RColor.green))
@@ -391,9 +409,10 @@ def _download_file(
     url: str,
     save_dir: Path,
     filename: str,
+    download_state: DownloadState,
     on_progress: Optional[Callable[[], None]] = None,
 ) -> Optional[Path]:
-    """Pure download with resume support. Checks rt.current_download.cancelled."""
+    """Pure download with resume support."""
     save_path = save_dir / filename
     resume_pos = save_path.stat().st_size if save_path.exists() else 0
 
@@ -415,16 +434,12 @@ def _download_file(
     mode = "ab" if resume_pos > 0 else "wb"
     with open(save_path, mode) as f:
         for chunk in response.iter_content(chunk_size=8192):
-            if (
-                rt.current_download is not None
-                and rt.current_download.cancelled
-            ):
+            if download_state.cancelled:
                 return None
             if chunk:
                 f.write(chunk)
                 downloaded += len(chunk)
-                if rt.current_download is not None:
-                    rt.current_download.update(downloaded, total)
+                download_state.update(downloaded, total)
                 if on_progress:
                     on_progress()
 

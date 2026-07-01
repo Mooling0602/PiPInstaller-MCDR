@@ -166,7 +166,6 @@ def on_cancel_install(src: CommandSource, ctx: CommandContext):
     if rt.current_download is not None:
         rt.current_download.cancel()
         src.reply(RText("插件下载进程已取消！", RColor.green))
-        rt.current_download = None
         return
     if rt.current_process is None or rt.current_process.poll() is not None:
         src.reply(RText("当前没有正在运行的进程！", RColor.yellow))
