@@ -44,3 +44,12 @@ Changelog contents for parsing in CI.
 - 将命令模块中的核心逻辑进一步整合至`core.py`模块，避免受命令上下文干扰
 
 **#full_changelog**
+
+## 0.3.0-rc5
+
+> 预览测试版本，不会同步至插件仓库。
+
+- 修复取消插件下载后后台下载仍可能继续进行的问题
+- 将 MCDReforged 最低版本要求调整为 2.10.0，以匹配当前命令注册实现
+
+**#full_changelog**
