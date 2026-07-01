@@ -15,6 +15,10 @@ dependencies = [
 
 [tool.ruff]
 line-length = 79
+target-version = "py39"
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
 
 [tool.hatch.version]
 source = "regex"

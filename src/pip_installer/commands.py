@@ -15,8 +15,8 @@ from mcdreforged.api.all import (
     new_thread,
 )
 
-import pip_installer.core as core
 import pip_installer.runtime as rt
+from pip_installer import core
 
 VALID_PLUGIN_PACKAGE_FORMATS = core.VALID_PLUGIN_PACKAGE_FORMATS
 builder = SimpleCommandBuilder()
@@ -222,7 +222,6 @@ def on_install_plugin(src: CommandSource, ctx: CommandContext):
     if _install_busy(src):
         return
 
-    server = src.get_server().psi()
     file_url = ctx["file_url"]
     custom_name: Optional[str] = ctx.get("file_name")
 
@@ -244,7 +243,7 @@ def on_install_plugin(src: CommandSource, ctx: CommandContext):
             return
 
         src.reply(RText(f"开始处理插件依赖: {file_path.name}", RColor.aqua))
-        server.execute_command(f"!!pip install -r {str(file_path)}")
+        rt.psi.execute_command(f"!!pip install -r {file_path!s}")
         src.reply(
             RText(
                 "已开始处理插件依赖；若存在依赖，请等待依赖安装完成后再加载插件。",
@@ -259,8 +258,8 @@ def on_install_plugin(src: CommandSource, ctx: CommandContext):
                 RText(" - 重载所有变更插件", RColor.gray),
             )
         )
-    except Exception as e:
-        src.reply(RText(f"插件安装发生错误: {str(e)}", RColor.red))
+    except Exception as e:  # noqa: BLE001
+        src.reply(RText(f"插件安装发生错误: {e!s}", RColor.red))
     finally:
         rt.current_download = None
 
@@ -289,8 +288,8 @@ def on_cancel_install(src: CommandSource, ctx: CommandContext):
             rt.current_process.kill()
             rt.current_process.wait()
         src.reply(RText("安装进程已成功取消！", RColor.green))
-    except Exception as e:
-        src.reply(RText(f"取消安装时发生错误: {str(e)}", RColor.red))
+    except Exception as e:  # noqa: BLE001
+        src.reply(RText(f"取消安装时发生错误: {e!s}", RColor.red))
     finally:
         rt.current_process = None
 

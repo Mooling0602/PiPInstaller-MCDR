@@ -19,8 +19,8 @@ def _get_fixed_aliases_data(data: dict) -> dict:
     接受一个命令别名的字典数据并返回剔除错误键值对后的正确数据，
     随时可能弃用。"""
     keys_to_remove: list = []
-    for k, _ in data.items():
-        for k_, _ in aliases_for_command.items():
+    for k in data:
+        for k_ in aliases_for_command:
             if k == k_:
                 keys_to_remove.append(k)
     for key in keys_to_remove:
@@ -36,7 +36,7 @@ def register_command_aliases(server: PluginServerInterface):
         try:
             config_content = command_aliases_config.read_bytes()
             existing_data: dict = json.loads(decode_text(config_content))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             server.logger.error(f"读取Command Aliases插件配置时遇到错误: {e}")
             server.logger.warning("将跳过命令别名注册操作。")
             return

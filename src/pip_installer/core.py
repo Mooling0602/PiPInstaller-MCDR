@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import shutil
 import subprocess
@@ -6,10 +8,10 @@ import time
 import urllib.parse
 from pathlib import Path, PurePosixPath
 from typing import Callable, Optional
+from zipfile import ZipFile
 
 import requests
 from mcdreforged.api.all import CommandSource, RColor, RText, RTextList
-from zipfile import ZipFile
 
 import pip_installer.runtime as rt
 from pip_installer.runtime import DownloadState
@@ -78,8 +80,8 @@ def run_pip_install(
                 src.reply(RText("PyPI包安装完成！", RColor.green))
             else:
                 src.reply(RText("PyPI包安装失败！", RColor.red))
-    except Exception as e:
-        src.reply(RText(f"安装过程中发生错误: {str(e)}", RColor.red))
+    except Exception as e:  # noqa: BLE001
+        src.reply(RText(f"安装过程中发生错误: {e!s}", RColor.red))
     finally:
         rt.current_process = None
 
@@ -95,20 +97,17 @@ def extract_requirements_from_archive(
     file_path: str, target_dir: Path
 ) -> Optional[Path]:
     requirements_file = "requirements.txt"
-    try:
-        with ZipFile(file_path, "r") as zip_ref:
-            if requirements_file not in zip_ref.namelist():
-                return None
-            with zip_ref.open(requirements_file) as f:
-                content = decode_text(f.read())
-        archive_hash = hashlib.sha256(
-            str(Path(file_path).resolve()).encode()
-        ).hexdigest()
-        requirements_path = target_dir / f"{archive_hash}.requirements.txt"
-        requirements_path.write_text(content, encoding="utf-8")
-        return requirements_path
-    except Exception:
-        return None
+    with ZipFile(file_path, "r") as zip_ref:
+        if requirements_file not in zip_ref.namelist():
+            return None
+        with zip_ref.open(requirements_file) as f:
+            content = decode_text(f.read())
+    archive_hash = hashlib.sha256(
+        str(Path(file_path).resolve()).encode()
+    ).hexdigest()
+    requirements_path = target_dir / f"{archive_hash}.requirements.txt"
+    requirements_path.write_text(content, encoding="utf-8")
+    return requirements_path
 
 
 # ===================== Plugin Placement =====================
@@ -228,41 +227,38 @@ def _download_file(
     on_progress: Optional[Callable[[], None]] = None,
 ) -> Optional[Path]:
     """Pure download with resume support. Checks rt.current_download.cancelled."""
-    try:
-        save_path = save_dir / filename
-        resume_pos = save_path.stat().st_size if save_path.exists() else 0
+    save_path = save_dir / filename
+    resume_pos = save_path.stat().st_size if save_path.exists() else 0
 
-        headers: dict[str, str] = {}
-        if resume_pos > 0:
+    headers: dict[str, str] = {}
+    if resume_pos > 0:
             headers["Range"] = f"bytes={resume_pos}-"
 
-        response = requests.get(url, headers=headers, stream=True, timeout=30)
-        response.raise_for_status()
+    response = requests.get(url, headers=headers, stream=True, timeout=30)
+    response.raise_for_status()
 
-        # Verify server accepted range request; redownload if not supported
-        if resume_pos > 0 and response.status_code != 206:
-            resume_pos = 0
-            save_path.unlink(missing_ok=True)
+    # Verify server accepted range request; redownload if not supported
+    if resume_pos > 0 and response.status_code != 206:
+        resume_pos = 0
+        save_path.unlink(missing_ok=True)
 
-        total = resume_pos + int(response.headers.get("content-length", 0))
-        downloaded = resume_pos
+    total = resume_pos + int(response.headers.get("content-length", 0))
+    downloaded = resume_pos
 
-        mode = "ab" if resume_pos > 0 else "wb"
-        with open(save_path, mode) as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if (
-                    rt.current_download is not None
-                    and rt.current_download.cancelled
-                ):
-                    return None
-                if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if rt.current_download is not None:
-                        rt.current_download.update(downloaded, total)
-                    if on_progress:
-                        on_progress()
+    mode = "ab" if resume_pos > 0 else "wb"
+    with open(save_path, mode) as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if (
+                rt.current_download is not None
+                and rt.current_download.cancelled
+            ):
+                return None
+            if chunk:
+                f.write(chunk)
+                downloaded += len(chunk)
+                if rt.current_download is not None:
+                    rt.current_download.update(downloaded, total)
+                if on_progress:
+                    on_progress()
 
-        return save_path
-    except Exception:
-        return None
+    return save_path

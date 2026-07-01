@@ -2,6 +2,10 @@ import subprocess
 import time
 from typing import Optional
 
+from mcdreforged.api.all import PluginServerInterface, ServerInterface
+
+psi: PluginServerInterface = ServerInterface.psi()
+
 
 class DownloadState:
     """Tracks a plugin download: progress, speed, cancellation."""
