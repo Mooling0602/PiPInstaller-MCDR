@@ -26,3 +26,13 @@ Changelog contents for parsing in CI.
 - 增强了插件包校验的健壮性
 
 **#full_changelog**
+
+## 0.3.0-rc3
+
+> 预览测试版本，不会同步至插件仓库。
+
+- 修复了插件下载线程中无法获取到`PluginServerInterface`上下文的问题
+
+> `PluginServerInterface`是MCDReforged提供给插件的核心API实例。
+
+**#full_changelog**
